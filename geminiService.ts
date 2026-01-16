@@ -1,3 +1,4 @@
+
 /**
  * Fail-Safe Gemini Service
  * - NEVER crashes the app
@@ -6,20 +7,28 @@
  */
 
 const SYSTEM_INSTRUCTION = `
-You are Mabuhay Assistant, an expert in Philippines tourism.
-Always start with "Mabuhay!". Be friendly and guide users to the booking form.
+أنت "مساعد مابوهاي الذكي"، خبير في سياحة الفلبين.
+ابدأ دائماً بكلمة "مابوهاي!". كن ودوداً ووجه المستخدمين دائماً لنموذج الحجز.
 `;
 
 function getApiKey(): string | null {
-  // Vercel / Vite
-  const viteKey = (import.meta as any)?.env?.VITE_GEMINI_API_KEY;
-  if (viteKey) return viteKey;
+  try {
+    // 1. Check process.env (Standard in Vercel/Production)
+    if (typeof process !== 'undefined' && process.env?.API_KEY) {
+      return process.env.API_KEY;
+    }
+    
+    // 2. Check import.meta.env (Vite standard)
+    const viteKey = (import.meta as any)?.env?.VITE_GEMINI_API_KEY;
+    if (viteKey) return viteKey;
 
-  // Google AI Studio / browser testing
-  if (typeof window !== "undefined" && (window as any).GEMINI_API_KEY) {
-    return (window as any).GEMINI_API_KEY;
+    // 3. Check browser global (AI Studio or manual testing)
+    if (typeof window !== "undefined" && (window as any).GEMINI_API_KEY) {
+      return (window as any).GEMINI_API_KEY;
+    }
+  } catch (e) {
+    console.warn("[Gemini] API Key detection error:", e);
   }
-
   return null;
 }
 
@@ -28,11 +37,11 @@ export const getChatbotResponse = async (userMessage: string) => {
     const apiKey = getApiKey();
 
     if (!apiKey) {
-      console.warn("[Gemini] API key missing — AI disabled");
+      console.warn("[Gemini] AI Service disabled: Missing API Key");
       return "مابوهاي! عذراً، خدمة المساعد الذكي غير متاحة حالياً. يرجى استخدام نموذج الحجز للتواصل معنا.";
     }
 
-    // Lazy-load SDK ONLY when needed
+    // Lazy-load SDK to prevent top-level import issues in browser-only environments
     const { GoogleGenAI } = await import("@google/genai");
 
     const ai = new GoogleGenAI({ apiKey });
@@ -45,10 +54,11 @@ export const getChatbotResponse = async (userMessage: string) => {
       },
     });
 
-    return response?.response?.text() ||
-      "مابوهاي! كيف يمكنني مساعدتك اليوم؟";
+    // CORRECT: Use .text property directly, not as a function.
+    // GUIDELINE: response.text is the correct way to extract content.
+    return response.text || "مابوهاي! كيف يمكنني مساعدتك اليوم؟";
   } catch (error) {
-    console.error("[Gemini] Runtime error:", error);
-    return "مابوهاي! نواجه صعوبة في معالجة طلبك، يرجى التواصل معنا عبر الواتساب مباشرة.";
+    console.error("[Gemini] Service Runtime Error:", error);
+    return "مابوهاي! نواجه صعوبة في معالجة طلبك حالياً، يرجى التواصل معنا عبر الواتساب مباشرة.";
   }
 };
