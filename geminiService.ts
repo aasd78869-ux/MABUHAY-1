@@ -1,31 +1,27 @@
 
 /**
- * Safe Gemini Service Wrapper
- * Handles dynamic loading and environment variable checks to prevent crashes.
+ * Fail-Safe Gemini Service
+ * Only loads if API_KEY is present, never crashes the app.
  */
 
 const SYSTEM_INSTRUCTION = `
-أنت "مساعد مابوهاي الذكي" (Mabuhay Smart Assistant)، الخبير الأول في سياحة الفلبين للمسافرين العرب.
-مهمتك: الإجابة على جميع تساؤلات الزوار حول السفر إلى الفلبين وتقديم توصيات مخصصة.
-
-تعليماتك الصارمة:
-1. ابدأ دائماً بكلمة "مابوهاي" (Mabuhay) بكل ود.
-2. أنت خبير في الجزر، مانيلا، التسوق، والمطاعم العربية الحلال.
-3. وجه الزوار دائماً لنموذج الحجز في الموقع للتواصل مع فريقنا البشري عبر الواتساب.
+You are Mabuhay Assistant, an expert in Philippines tourism.
+Always start with "Mabuhay!". Be friendly and guide users to the booking form.
 `;
 
 export const getChatbotResponse = async (userMessage: string) => {
-  // Safe extraction of API Key from multiple potential environments
-  const apiKey = (typeof process !== 'undefined' ? process.env?.API_KEY : null) || 
-                 (import.meta as any).env?.VITE_GEMINI_API_KEY || "";
-
-  if (!apiKey) {
-    console.warn("Gemini API Key is missing. AI features are disabled.");
-    return "مابوهاي! عذراً، خدمة المساعد الذكي غير مفعلة حالياً. يمكنك التواصل معنا مباشرة عبر الواتساب.";
-  }
-
   try {
-    // Dynamic import to prevent top-level crashes if SDK is unavailable
+    // Robust API key detection across local/vercel/studio
+    const apiKey = (typeof process !== 'undefined' && process.env?.API_KEY) || 
+                   (import.meta as any).env?.VITE_GEMINI_API_KEY || 
+                   "";
+
+    if (!apiKey) {
+      console.warn("AI Service unavailable: Missing API Key");
+      return "مابوهاي! عذراً، خدمة المساعد الذكي غير متاحة حالياً. يرجى استخدام نموذج الحجز للتواصل معنا.";
+    }
+
+    // Dynamic import to prevent build-time crashes if SDK is missing
     const { GoogleGenAI } = await import("@google/genai");
     
     const ai = new GoogleGenAI({ apiKey });
@@ -37,9 +33,9 @@ export const getChatbotResponse = async (userMessage: string) => {
       },
     });
 
-    return response.text || "مابوهاي! أنا هنا لخدمتك، كيف يمكنني مساعدتك اليوم؟";
+    return response.text || "مابوهاي! كيف يمكنني مساعدتك اليوم؟";
   } catch (error) {
-    console.error("Gemini Error:", error);
-    return "نعتذر، واجهنا مشكلة تقنية في الاتصال بالمساعد الذكي. فريقنا متاح لخدمتك عبر الواتساب.";
+    console.error("AI Service Error:", error);
+    return "مابوهاي! نواجه صعوبة في معالجة طلبك، يرجى التواصل معنا عبر الواتساب مباشرة.";
   }
 };
