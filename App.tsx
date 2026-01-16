@@ -63,6 +63,30 @@ const HomeQuickLink: React.FC<{ icon: string; label: string; onClick: () => void
   </div>
 );
 
+// --- Restored Planning Bar ---
+
+const PlanningBar: React.FC<{ lang: Language; onAction: () => void; isVisible: boolean }> = ({ lang, onAction, isVisible }) => {
+  if (!isVisible) return null;
+  return (
+    <div className="fixed bottom-0 left-0 right-0 z-[140] bg-white/95 backdrop-blur-xl border-t border-blue-50 shadow-[0_-15px_40px_rgba(0,0,0,0.1)] p-4 md:p-6 animate-in slide-in-from-bottom duration-500">
+      <div className="container mx-auto flex flex-col md:flex-row items-center justify-between gap-4">
+        <div className={`flex items-center gap-4 ${lang === 'AR' ? 'flex-row' : 'flex-row-reverse'}`}>
+          <div className="w-12 h-12 bg-red-50 rounded-2xl flex items-center justify-center text-2xl shadow-inner">🗺️</div>
+          <div className={`flex flex-col ${lang === 'AR' ? 'text-right' : 'text-left'}`}>
+            <h4 className="text-base md:text-lg font-black text-blue-900 leading-tight">
+              {lang === 'AR' ? 'خطّط لرحلتك مع مستشار مابوهاي' : 'Plan your trip with Mabuhay Expert'}
+            </h4>
+            <p className="text-[10px] text-gray-400 font-bold uppercase tracking-widest mt-0.5">Customized Itineraries & Booking</p>
+          </div>
+        </div>
+        <button onClick={onAction} className="w-full md:w-auto bg-red-600 text-white px-10 py-4 rounded-2xl font-black text-sm shadow-red-600/30 shadow-2xl hover:scale-105 active:scale-95 transition-all">
+          {lang === 'AR' ? 'ابدأ التخطيط الآن' : 'Start Planning Now'}
+        </button>
+      </div>
+    </div>
+  );
+};
+
 const AboutPHView: React.FC<{ lang: Language; onAction: () => void }> = ({ lang, onAction }) => (
   <div className="animate-in fade-in duration-700">
     <SectionBanner image="https://images.unsplash.com/photo-1516690561799-46d8f74f9abf?q=80&w=2000" title={lang === 'AR' ? 'اكتشف الفلبين' : 'Discover Philippines'} subtitle={lang === 'AR' ? 'دليلك الشامل لجمال وسحر الأرخبيل الفلبيني' : 'Guide to the archipelago'} lang={lang} />
@@ -345,6 +369,13 @@ export default function App() {
           <p className="mt-8 text-gray-400 text-xs font-bold uppercase tracking-widest">© MABUHAY TRAVEL 2026. ALL RIGHTS RESERVED.</p>
         </div>
       </footer>
+
+      {/* Restored Planning Bar */}
+      <PlanningBar 
+        lang={lang} 
+        onAction={() => navigateTo('BOOKING')} 
+        isVisible={view !== 'ADMIN_DASHBOARD' && view !== 'ADMIN_LOGIN' && view !== 'BOOKING'} 
+      />
     </div>
   );
 }
