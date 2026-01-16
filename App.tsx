@@ -11,13 +11,25 @@ import {
   setDoc, 
   deleteDoc, 
   query,
-  getDocs
+  getDocs,
+  getDoc
 } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 import { 
   ref, 
   uploadBytes, 
   getDownloadURL 
 } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-storage.js";
+
+// --- Utilities ---
+
+const convertToBase64 = (file: File): Promise<string> => {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.readAsDataURL(file);
+    reader.onload = () => resolve(reader.result as string);
+    reader.onerror = (error) => reject(error);
+  });
+};
 
 // --- Components ---
 
@@ -85,10 +97,10 @@ const AdminItemModal: React.FC<{
     name: { AR: '', EN: '' },
     description: { AR: '', EN: '' },
     location: { AR: '', EN: '' },
-    title: { AR: '', EN: '' }, // For HeroSlides
-    subtitle: { AR: '', EN: '' }, // For HeroSlides
+    title: { AR: '', EN: '' }, 
+    subtitle: { AR: '', EN: '' }, 
     images: [''],
-    image: '', // For HeroSlides
+    image: '', 
     category: category.toUpperCase(),
     hidden: false
   });
@@ -102,17 +114,16 @@ const AdminItemModal: React.FC<{
 
     setUploading(true);
     try {
-      const storageRef = ref(storage, `photos/${category}/${Date.now()}_${file.name}`);
-      const snapshot = await uploadBytes(storageRef, file);
-      const url = await getDownloadURL(snapshot.ref);
+      // Use convertToBase64 as requested for better integration
+      const base64 = await convertToBase64(file);
       if (isHeroSlide) {
-        setFormData({ ...formData, image: url });
+        setFormData({ ...formData, image: base64 });
       } else {
-        setFormData({ ...formData, images: [url] });
+        setFormData({ ...formData, images: [base64] });
       }
     } catch (err) {
       console.error(err);
-      alert("Error uploading image");
+      alert("Error processing image");
     } finally {
       setUploading(false);
     }
@@ -190,7 +201,7 @@ const AdminItemModal: React.FC<{
           )}
 
           <div className="space-y-2">
-            <label className="text-xs font-black text-gray-400 uppercase">الصورة</label>
+            <label className="text-xs font-black text-gray-400 uppercase">الصورة (Base64)</label>
             <div className="flex items-center gap-4">
               <div className="w-32 h-32 bg-gray-100 rounded-2xl overflow-hidden border-2 border-dashed border-gray-200">
                 {(isHeroSlide ? formData.image : formData.images[0]) && (
@@ -200,16 +211,16 @@ const AdminItemModal: React.FC<{
               <div className="flex flex-col gap-2 flex-1">
                 <input type="file" onChange={handleFileUpload} className="hidden" id="file-upload" />
                 <label htmlFor="file-upload" className="bg-blue-900 text-white px-6 py-3 rounded-xl cursor-pointer text-xs font-bold hover:bg-red-600 transition inline-block text-center">
-                  {uploading ? 'جاري الرفع...' : 'رفع صورة جديدة'}
+                  {uploading ? 'جاري التحويل...' : 'رفع صورة (Base64)'}
                 </label>
-                <input 
+                <textarea 
                   value={isHeroSlide ? formData.image : formData.images[0]} 
                   onChange={e => {
                     if (isHeroSlide) setFormData({...formData, image: e.target.value});
                     else setFormData({...formData, images: [e.target.value]});
                   }} 
-                  placeholder="أو رابط الصورة المباشر" 
-                  className="w-full p-3 bg-gray-50 rounded-xl text-xs outline-none" 
+                  placeholder="رابط الصورة أو كود Base64" 
+                  className="w-full p-3 bg-gray-50 rounded-xl text-[8px] h-12 outline-none overflow-hidden" 
                 />
               </div>
             </div>
@@ -227,7 +238,6 @@ const AdminItemModal: React.FC<{
 
 // --- View Components ---
 
-// Fix for missing VisaInfoView component
 const VisaInfoView: React.FC<{ lang: Language; onBook: () => void }> = ({ lang, onBook }) => (
   <div className="container mx-auto px-4 py-12 animate-in fade-in duration-700">
     <SectionBanner 
@@ -270,6 +280,7 @@ export default function App() {
   const [userRole, setUserRole] = useState<'VISITOR' | 'ADMIN'>('VISITOR');
   const [editItem, setEditItem] = useState<any>(null);
   const [currentAdminTab, setCurrentAdminTab] = useState('islands');
+  const [portfolioData, setPortfolioData] = useState<{ imageBase64?: string }>({});
 
   // Real-time Firestore sync
   useEffect(() => {
@@ -283,7 +294,18 @@ export default function App() {
         }
       });
     });
-    return () => unsubscribes.forEach(unsub => unsub());
+
+    // Portfolio/main sync
+    const portfolioUnsub = onSnapshot(doc(db, 'portfolio', 'main'), (doc) => {
+      if (doc.exists()) {
+        setPortfolioData(doc.data());
+      }
+    });
+
+    return () => {
+      unsubscribes.forEach(unsub => unsub());
+      portfolioUnsub();
+    };
   }, []);
 
   const navigateTo = (newView: ViewState) => {
@@ -316,6 +338,23 @@ export default function App() {
       await updateDoc(doc(db, currentAdminTab, item.id), { hidden: !item.hidden });
     } catch (err) {
       console.error(err);
+    }
+  };
+
+  const handlePortfolioUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    try {
+      const base64 = await convertToBase64(file);
+      await setDoc(doc(db, 'portfolio', 'main'), { 
+        imageBase64: base64,
+        updatedAt: new Date().toISOString()
+      }, { merge: true });
+      alert("تم رفع الصورة وتخزينها كـ Base64 بنجاح!");
+    } catch (err) {
+      console.error(err);
+      alert("فشل رفع الصورة");
     }
   };
 
@@ -375,6 +414,15 @@ export default function App() {
                 <span className="text-[10px] font-black text-red-600 uppercase">دليل الفيزا</span>
               </button>
             </div>
+
+            {portfolioData.imageBase64 && (
+              <div className="container mx-auto px-4 py-20 text-center">
+                <h3 className="text-2xl font-black text-blue-900 mb-8">صورة الملف التعريفي (Base64)</h3>
+                <div className="max-w-4xl mx-auto rounded-[3rem] overflow-hidden shadow-2xl border-8 border-white">
+                  <img src={portfolioData.imageBase64} className="w-full h-auto object-cover" alt="Portfolio Main" />
+                </div>
+              </div>
+            )}
           </div>
         )}
 
@@ -434,8 +482,8 @@ export default function App() {
               <button onClick={() => { setUserRole('VISITOR'); navigateTo('HOME'); }} className="bg-red-600 text-white px-6 py-2 rounded-xl text-xs font-black shadow-lg">خروج</button>
             </div>
             
-            <div className="grid grid-cols-2 md:grid-cols-6 gap-2 mb-10">
-              {['islands', 'manilaDistricts', 'shopping', 'restaurants', 'activities', 'heroSlides'].map(tab => (
+            <div className="grid grid-cols-2 md:grid-cols-7 gap-2 mb-10">
+              {['islands', 'manilaDistricts', 'shopping', 'restaurants', 'activities', 'heroSlides', 'settings'].map(tab => (
                 <button key={tab} onClick={() => setCurrentAdminTab(tab)} className={`p-4 rounded-xl text-[10px] font-black transition ${currentAdminTab === tab ? 'bg-blue-900 text-white shadow-lg' : 'bg-white text-gray-400'}`}>
                   {tab.toUpperCase()}
                 </button>
@@ -443,29 +491,60 @@ export default function App() {
             </div>
 
             <div className="bg-white p-8 rounded-[3rem] shadow-xl min-h-[500px] border border-gray-50">
-              <div className="flex justify-between items-center mb-8">
-                <h3 className="text-xl font-black text-blue-900">إدارة {currentAdminTab}</h3>
-                <button onClick={() => setEditItem({})} className="bg-green-600 text-white px-6 py-3 rounded-2xl font-black text-xs shadow-lg hover:scale-105 transition">+ إضافة جديد</button>
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {((siteData as any)[currentAdminTab] || []).map((item: any) => (
-                  <div key={item.id} className={`p-6 rounded-3xl border-2 flex flex-col gap-4 transition ${item.hidden ? 'bg-gray-50 border-gray-100 opacity-60' : 'bg-white border-blue-50 shadow-sm'}`}>
-                    <div className="flex justify-between items-start">
-                      <img src={currentAdminTab === 'heroSlides' ? item.image : item.images?.[0]} className="w-16 h-16 rounded-xl object-cover shadow-sm" />
-                      <div className="flex gap-2">
-                        <button onClick={() => setEditItem(item)} className="p-3 bg-blue-50 text-blue-600 rounded-xl hover:bg-blue-100 transition">✏️</button>
-                        <button onClick={() => deleteFromFirebase(item.id)} className="p-3 bg-red-50 text-red-600 rounded-xl hover:bg-red-100 transition">🗑️</button>
-                        <button onClick={() => toggleVisibility(item)} className={`p-3 rounded-xl transition ${item.hidden ? 'bg-gray-200' : 'bg-green-50 text-green-600 hover:bg-green-100'}`}>{item.hidden ? '👁️‍🗨️' : '👁️'}</button>
+              {currentAdminTab === 'settings' ? (
+                <div className="max-w-2xl mx-auto py-10">
+                  <h3 className="text-2xl font-black text-blue-900 mb-6">إعدادات الملف الشخصي (Base64)</h3>
+                  <div className="bg-gray-50 p-8 rounded-[2rem] border-2 border-dashed border-gray-200 text-center">
+                    <input type="file" onChange={handlePortfolioUpload} className="hidden" id="portfolio-upload" />
+                    <label htmlFor="portfolio-upload" className="bg-blue-900 text-white px-10 py-4 rounded-2xl cursor-pointer font-black shadow-xl hover:scale-105 transition inline-block mb-6">
+                      اختر صورة لتحويلها وتخزينها كـ Base64
+                    </label>
+                    <p className="text-xs text-gray-400">يتم تخزين الصورة في Firestore بمستند portfolio/main</p>
+                    {portfolioData.imageBase64 && (
+                      <div className="mt-10">
+                        <p className="text-xs font-black text-blue-900 mb-4 uppercase">معاينة الصورة الحالية</p>
+                        <img src={portfolioData.imageBase64} className="w-48 h-48 mx-auto object-cover rounded-2xl shadow-lg border-4 border-white" />
+                        <button 
+                          onClick={async () => {
+                            if(confirm("حذف الصورة؟")) {
+                              await updateDoc(doc(db, 'portfolio', 'main'), { imageBase64: "" });
+                            }
+                          }}
+                          className="mt-4 text-red-500 text-[10px] font-black underline"
+                        >
+                          حذف الصورة
+                        </button>
                       </div>
-                    </div>
-                    <div>
-                      <h4 className="font-black text-blue-900">{currentAdminTab === 'heroSlides' ? item.title[lang] : item.name[lang]}</h4>
-                      <p className="text-[10px] text-gray-400 font-bold mt-1 uppercase tracking-tighter">{item.id}</p>
-                    </div>
+                    )}
                   </div>
-                ))}
-              </div>
+                </div>
+              ) : (
+                <>
+                  <div className="flex justify-between items-center mb-8">
+                    <h3 className="text-xl font-black text-blue-900">إدارة {currentAdminTab}</h3>
+                    <button onClick={() => setEditItem({})} className="bg-green-600 text-white px-6 py-3 rounded-2xl font-black text-xs shadow-lg hover:scale-105 transition">+ إضافة جديد</button>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    {((siteData as any)[currentAdminTab] || []).map((item: any) => (
+                      <div key={item.id} className={`p-6 rounded-3xl border-2 flex flex-col gap-4 transition ${item.hidden ? 'bg-gray-50 border-gray-100 opacity-60' : 'bg-white border-blue-50 shadow-sm'}`}>
+                        <div className="flex justify-between items-start">
+                          <img src={currentAdminTab === 'heroSlides' ? item.image : item.images?.[0]} className="w-16 h-16 rounded-xl object-cover shadow-sm" />
+                          <div className="flex gap-2">
+                            <button onClick={() => setEditItem(item)} className="p-3 bg-blue-50 text-blue-600 rounded-xl hover:bg-blue-100 transition">✏️</button>
+                            <button onClick={() => deleteFromFirebase(item.id)} className="p-3 bg-red-50 text-red-600 rounded-xl hover:bg-red-100 transition">🗑️</button>
+                            <button onClick={() => toggleVisibility(item)} className={`p-3 rounded-xl transition ${item.hidden ? 'bg-gray-200' : 'bg-green-50 text-green-600 hover:bg-green-100'}`}>{item.hidden ? '👁️‍🗨️' : '👁️'}</button>
+                          </div>
+                        </div>
+                        <div>
+                          <h4 className="font-black text-blue-900">{currentAdminTab === 'heroSlides' ? item.title[lang] : item.name[lang]}</h4>
+                          <p className="text-[10px] text-gray-400 font-bold mt-1 uppercase tracking-tighter">{item.id}</p>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </>
+              )}
             </div>
           </div>
         )}
