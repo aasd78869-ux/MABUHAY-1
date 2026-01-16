@@ -4,7 +4,6 @@ import { ViewState, Language, Attraction, SiteData, HeroSlide } from './types';
 import { 
   DEFAULT_SITE_DATA, ICONS, VISA_DATA 
 } from './constants';
-import { getChatbotResponse } from './geminiService';
 
 // --- New Component: AboutPHView ---
 
@@ -268,7 +267,7 @@ const AboutPHView: React.FC<{ lang: Language; onAction: () => void }> = ({ lang,
             <div className="flex flex-col sm:flex-row gap-6 justify-center">
               <button 
                 onClick={onAction}
-                className="bg-red-600 text-white px-16 py-6 rounded-3xl font-black text-2xl shadow-2xl shadow-red-600/30 hover:scale-105 active:scale-95 transition-all"
+                className="bg-red-600 text-white px-16 py-6 rounded-3xl font-black text-2xl shadow-red-600/30 shadow-2xl hover:scale-105 active:scale-95 transition-all"
               >
                 {lang === 'AR' ? 'ابدأ رحلتك الآن' : 'Start Your Journey Now'}
               </button>
@@ -364,7 +363,7 @@ const VisaInfoView: React.FC<{ lang: Language; onBook: () => void }> = ({ lang, 
               </p>
               <button 
                 onClick={onBook}
-                className="bg-red-600 text-white px-12 py-5 rounded-2xl font-black text-lg shadow-xl shadow-red-600/30 hover:scale-105 active:scale-95 transition-all"
+                className="bg-red-600 text-white px-12 py-5 rounded-2xl font-black text-lg shadow-red-600/30 shadow-xl hover:scale-105 active:scale-95 transition-all"
               >
                 {lang === 'AR' ? 'تواصل مع مستشارنا للمساعدة في الفيزا' : 'Contact Visa Consultant Now'}
               </button>
@@ -396,7 +395,7 @@ const PlanningBar: React.FC<{ lang: Language; onAction: () => void; isVisible: b
         </div>
         <button 
           onClick={onAction}
-          className="bg-red-600 text-white px-10 py-4 rounded-2xl font-black text-sm shadow-xl shadow-red-600/20 hover:scale-105 active:scale-95 transition-all whitespace-nowrap"
+          className="bg-red-600 text-white px-10 py-4 rounded-2xl font-black text-sm shadow-red-600/20 shadow-xl hover:scale-105 active:scale-95 transition-all whitespace-nowrap"
         >
           {lang === 'AR' ? 'ابدأ التخطيط الآن' : 'Start Planning Now'}
         </button>
@@ -595,7 +594,7 @@ const AdminDashboardView: React.FC<{
                    </div>
                    <button 
                     onClick={triggerFileUpload} 
-                    className="bg-red-600 text-white px-8 py-4 rounded-2xl font-black text-xs shadow-xl shadow-red-600/20 hover:scale-105 active:scale-95 transition-all flex items-center gap-2"
+                    className="bg-red-600 text-white px-8 py-4 rounded-2xl font-black text-xs shadow-red-600/20 shadow-xl hover:scale-105 active:scale-95 transition-all flex items-center gap-2"
                    >
                      📸 {lang === 'AR' ? 'إضافة / رفع صورة جديدة' : 'Add / Upload New Image'}
                    </button>
@@ -654,7 +653,7 @@ const AdminDashboardView: React.FC<{
             <div className="flex gap-4 pt-10 border-t border-gray-100">
               <button 
                 onClick={() => saveEdit(activeTab === 'GENERAL' ? 'heroSlides' : activeTab.toLowerCase() as any)} 
-                className="bg-green-600 text-white px-16 py-5 rounded-2xl font-black shadow-xl shadow-green-600/20 hover:scale-105 transition-all"
+                className="bg-green-600 text-white px-16 py-5 rounded-2xl font-black shadow-green-600/20 shadow-xl hover:scale-105 transition-all"
               >
                 ✅ {lang === 'AR' ? 'حفظ التغييرات النهائية' : 'Save All Changes'}
               </button>
@@ -840,111 +839,76 @@ const HeroSlider: React.FC<{ slides: HeroSlide[]; navigateTo: (v: ViewState) => 
   );
 };
 
-// --- New Component: LoginGateway ---
-
-const LoginGateway: React.FC<{ 
-  onAdminLogin: (email: string, pass: string) => void; 
-  onVisitorEntry: () => void;
-  lang: Language;
-}> = ({ onAdminLogin, onVisitorEntry, lang }) => {
-  const [showAdminForm, setShowAdminForm] = useState(false);
+const AdminLoginView: React.FC<{ 
+  onLogin: (email: string, pass: string) => void; 
+  lang: Language; 
+  goBack: () => void;
+}> = ({ onLogin, lang, goBack }) => {
   const [email, setEmail] = useState('');
   const [pass, setPass] = useState('');
   const [showPass, setShowPass] = useState(false);
 
   return (
-    <div className="fixed inset-0 z-[500] bg-blue-950 flex items-center justify-center p-4">
-      <div className="absolute inset-0 overflow-hidden">
-        <img 
-          src="https://images.unsplash.com/photo-1518509562904-e7ef99cdcc86?q=80&w=2000" 
-          className="w-full h-full object-cover opacity-30 blur-sm scale-110" 
-          alt="" 
-        />
-        <div className="absolute inset-0 bg-gradient-to-br from-blue-900/60 to-blue-950/90"></div>
-      </div>
-      
-      <div className="relative z-10 w-full max-w-lg bg-white/10 backdrop-blur-2xl border border-white/20 rounded-[4rem] p-8 md:p-16 shadow-2xl animate-in zoom-in duration-500">
-        <div className="text-center mb-12">
+    <div className="min-h-[70vh] flex items-center justify-center p-4 bg-gray-50">
+      <div className="w-full max-w-md bg-white p-10 rounded-[3rem] shadow-2xl border border-blue-50 animate-in zoom-in duration-300">
+        <div className="text-center mb-10">
           <PHLogo />
-          <h2 className="text-2xl md:text-3xl font-black text-white mt-8 mb-2">
-            {lang === 'AR' ? 'أهلاً بك في موبهاي' : 'Welcome to Mabuhay'}
-          </h2>
-          <p className="text-white/60 font-bold text-sm">
-            {lang === 'AR' ? 'الرجاء اختيار طريقة الدخول للموقع' : 'Please choose your entry method'}
-          </p>
+          <h2 className="text-2xl font-black text-blue-900 mt-6">{lang === 'AR' ? 'تسجيل دخول الإدارة' : 'Admin Login'}</h2>
+          <p className="text-gray-400 text-sm font-bold mt-2">{lang === 'AR' ? 'يرجى إدخال بيانات الوصول المعتمدة' : 'Please enter authorized access data'}</p>
         </div>
 
-        {!showAdminForm ? (
-          <div className="space-y-6">
-            <button 
-              onClick={onVisitorEntry}
-              className="w-full bg-red-600 text-white py-6 rounded-[2.5rem] font-black text-xl shadow-2xl hover:scale-[1.02] active:scale-95 transition-all"
-            >
-              {lang === 'AR' ? 'الدخول كزائر' : 'Enter as Visitor'}
-            </button>
-            <button 
-              onClick={() => setShowAdminForm(true)}
-              className="w-full bg-white/10 border border-white/30 text-white py-6 rounded-[2.5rem] font-black text-xl hover:bg-white/20 transition-all"
-            >
-              {lang === 'AR' ? 'تسجيل دخول كأدمن' : 'Admin Login'}
-            </button>
-          </div>
-        ) : (
-          <form 
-            onSubmit={(e) => { e.preventDefault(); onAdminLogin(email, pass); }} 
-            className="space-y-6 animate-in slide-in-from-bottom-4 duration-300"
-          >
-            <div className="space-y-4">
+        <form 
+          onSubmit={(e) => { e.preventDefault(); onLogin(email, pass); }} 
+          className="space-y-6"
+        >
+          <div className="space-y-4">
+            <input 
+              type="email" 
+              value={email} 
+              onChange={e => setEmail(e.target.value)} 
+              placeholder={lang === 'AR' ? 'البريد الإلكتروني' : 'Email'} 
+              className="w-full p-4 bg-gray-50 border border-transparent rounded-2xl outline-none focus:border-blue-900 transition-colors font-bold"
+              required 
+            />
+            <div className="relative">
               <input 
-                type="email" 
-                value={email} 
-                onChange={e => setEmail(e.target.value)} 
-                placeholder={lang === 'AR' ? 'البريد الإلكتروني' : 'Email Address'} 
-                className="w-full p-5 bg-white/5 border border-white/20 text-white rounded-3xl outline-none focus:border-red-600 transition-colors"
+                type={showPass ? "text" : "password"} 
+                value={pass} 
+                onChange={e => setPass(e.target.value)} 
+                placeholder={lang === 'AR' ? 'كلمة المرور' : 'Password'} 
+                className="w-full p-4 bg-gray-50 border border-transparent rounded-2xl outline-none focus:border-blue-900 transition-colors font-bold"
                 required 
               />
-              <div className="relative">
-                <input 
-                  type={showPass ? "text" : "password"} 
-                  value={pass} 
-                  onChange={e => setPass(e.target.value)} 
-                  placeholder={lang === 'AR' ? 'كلمة المرور' : 'Password'} 
-                  className="w-full p-5 bg-white/5 border border-white/20 text-white rounded-3xl outline-none focus:border-red-600 transition-colors"
-                  required 
-                />
-                <button 
-                  type="button" 
-                  onClick={() => setShowPass(!showPass)}
-                  className="absolute right-6 top-1/2 -translate-y-1/2 text-white/50 hover:text-white"
-                >
-                  {showPass ? <ICONS.EyeOff /> : <ICONS.Eye />}
-                </button>
-              </div>
-            </div>
-            <div className="flex gap-4">
               <button 
                 type="button" 
-                onClick={() => setShowAdminForm(false)}
-                className="w-1/3 bg-white/10 text-white py-5 rounded-3xl font-black text-sm"
+                onClick={() => setShowPass(!showPass)}
+                className={`absolute inset-y-0 ${lang === 'AR' ? 'left-4' : 'right-4'} flex items-center text-gray-400 hover:text-blue-900`}
               >
-                {lang === 'AR' ? 'رجوع' : 'Back'}
-              </button>
-              <button 
-                type="submit" 
-                className="flex-grow bg-red-600 text-white py-5 rounded-3xl font-black text-xl shadow-xl hover:bg-red-700 transition-all"
-              >
-                {lang === 'AR' ? 'تسجيل دخول' : 'Login'}
+                {showPass ? <ICONS.EyeOff /> : <ICONS.Eye />}
               </button>
             </div>
-          </form>
-        )}
+          </div>
+          <button 
+            type="submit" 
+            className="w-full bg-blue-900 text-white py-5 rounded-3xl font-black text-lg shadow-xl hover:bg-red-600 transition-all active:scale-95"
+          >
+            {lang === 'AR' ? 'دخول' : 'Login'}
+          </button>
+          <button 
+            type="button" 
+            onClick={goBack}
+            className="w-full text-gray-400 font-bold text-sm hover:text-blue-900 transition-colors"
+          >
+            {lang === 'AR' ? 'إلغاء والعودة كمشاهد' : 'Cancel & Return as Viewer'}
+          </button>
+        </form>
       </div>
     </div>
   );
 };
 
 export default function App() {
-  const [userRole, setUserRole] = useState<'ADMIN' | 'VISITOR' | null>(null);
+  const [userRole, setUserRole] = useState<'ADMIN' | 'VISITOR'>('VISITOR');
   const [view, setView] = useState<ViewState>('HOME');
   const [history, setHistoryStack] = useState<ViewState[]>(['HOME']);
   const [lang, setLang] = useState<Language>('AR');
@@ -959,12 +923,14 @@ export default function App() {
   }, []);
 
   const updateSiteData = (newData: SiteData) => {
+    if (userRole !== 'ADMIN') return;
     setDataHistory(prev => [siteData, ...prev].slice(0, 10));
     setSiteData(newData);
     localStorage.setItem('mabuhay_v4_data', JSON.stringify(newData));
   };
 
   const undoDataChange = () => {
+    if (userRole !== 'ADMIN') return;
     if (dataHistory.length > 0) {
       const last = dataHistory[0];
       setSiteData(last);
@@ -974,6 +940,7 @@ export default function App() {
   };
 
   const resetToDefault = () => {
+    if (userRole !== 'ADMIN') return;
     if (window.confirm('إعادة ضبط المصنع؟ سيتم مسح كافة التعديلات.')) updateSiteData(DEFAULT_SITE_DATA);
   };
 
@@ -1000,17 +967,13 @@ export default function App() {
   const handleAdminLogin = (email: string, pass: string) => {
     if (email === 'aasd78869@gmail.com' && pass === 'Zz100100') {
       setUserRole('ADMIN');
-      setView('HOME');
+      setView('ADMIN_DASHBOARD');
     } else {
       alert(lang === 'AR' ? 'بيانات الدخول خاطئة' : 'Invalid credentials');
     }
   };
 
   const getActive = (list: Attraction[]) => list.filter(i => !i.hidden);
-
-  if (userRole === null) {
-    return <LoginGateway onAdminLogin={handleAdminLogin} onVisitorEntry={() => setUserRole('VISITOR')} lang={lang} />;
-  }
 
   return (
     <div className={`min-h-screen bg-[#FDFDFF] pb-24 md:pb-32 ${lang === 'AR' ? "font-['Cairo']" : "font-sans"}`}>
@@ -1029,13 +992,23 @@ export default function App() {
             <div onClick={() => navigateTo('HOME')}><PHLogo /></div>
           </div>
           <div className="hidden lg:flex items-center gap-8">
-            {userRole === 'ADMIN' && (
+            {userRole === 'VISITOR' ? (
               <button 
-                onClick={() => navigateTo('ADMIN_DASHBOARD')} 
-                className="text-[10px] font-black tracking-widest text-red-600 bg-red-50 px-4 py-2 rounded-xl border border-red-100 hover:bg-red-600 hover:text-white transition-all shadow-lg animate-pulse"
+                onClick={() => navigateTo('ADMIN_LOGIN')} 
+                className="text-[10px] font-black tracking-widest text-gray-400 hover:text-blue-900 transition-all uppercase border border-gray-100 px-4 py-2 rounded-xl"
               >
-                CONTROL PANEL
+                {lang === 'AR' ? 'دخول الإدارة' : 'Admin Login'}
               </button>
+            ) : (
+              <div className="flex items-center gap-4">
+                <button 
+                  onClick={() => navigateTo('ADMIN_DASHBOARD')} 
+                  className={`text-[10px] font-black tracking-widest px-4 py-2 rounded-xl border transition-all shadow-lg ${view === 'ADMIN_DASHBOARD' ? 'bg-red-600 text-white border-red-600' : 'text-red-600 bg-red-50 border-red-100 animate-pulse'}`}
+                >
+                  CONTROL PANEL
+                </button>
+                <button onClick={() => { setUserRole('VISITOR'); setView('HOME'); }} className="text-gray-300 hover:text-red-600 text-[10px] font-black transition-colors uppercase">Logout</button>
+              </div>
             )}
             <button onClick={() => setLang(lang === 'AR' ? 'EN' : 'AR')} className="bg-blue-900 text-white px-5 py-2 rounded-2xl text-[10px] font-black">{lang === 'AR' ? 'English' : 'العربية'}</button>
             <NavBtn active={view === 'HOME'} onClick={() => navigateTo('HOME')}>{siteData.translations.navHome[lang]}</NavBtn>
@@ -1044,7 +1017,6 @@ export default function App() {
             <NavBtn active={view === 'VISA_INFO'} onClick={() => navigateTo('VISA_INFO')}>{siteData.translations.navVisa[lang]}</NavBtn>
             <NavBtn active={view === 'ISLANDS'} onClick={() => navigateTo('ISLANDS')}>{siteData.translations.navIslands[lang]}</NavBtn>
             <NavBtn active={view === 'BOOKING'} onClick={() => navigateTo('BOOKING')} highlight>{siteData.translations.navBook[lang]}</NavBtn>
-            <button onClick={() => { setUserRole(null); setView('HOME'); }} className="text-gray-300 hover:text-red-600 text-xs font-black transition-colors">LOGOUT</button>
           </div>
           <div className="lg:hidden" onClick={() => setIsMenuOpen(true)}>🍔</div>
         </div>
@@ -1063,10 +1035,14 @@ export default function App() {
               <button onClick={() => navigateTo('VISA_INFO')} className="text-xl font-black text-blue-900 text-right">{siteData.translations.navVisa[lang]}</button>
               <button onClick={() => navigateTo('ISLANDS')} className="text-xl font-black text-blue-900 text-right">{siteData.translations.navIslands[lang]}</button>
               <button onClick={() => navigateTo('BOOKING')} className="text-xl font-black text-red-600 text-right">{siteData.translations.navBook[lang]}</button>
-              {userRole === 'ADMIN' && (
-                <button onClick={() => navigateTo('ADMIN_DASHBOARD')} className="text-xl font-black text-red-600 text-right uppercase tracking-widest">Control Panel</button>
+              {userRole === 'VISITOR' ? (
+                <button onClick={() => navigateTo('ADMIN_LOGIN')} className="text-xl font-black text-gray-400 text-right uppercase">{lang === 'AR' ? 'دخول المسئول' : 'Admin Login'}</button>
+              ) : (
+                <>
+                  <button onClick={() => navigateTo('ADMIN_DASHBOARD')} className="text-xl font-black text-red-600 text-right uppercase tracking-widest">Control Panel</button>
+                  <button onClick={() => { setUserRole('VISITOR'); setView('HOME'); setIsMenuOpen(false); }} className="text-xl font-black text-gray-300 text-right uppercase">Logout</button>
+                </>
               )}
-              <button onClick={() => setUserRole(null)} className="text-xl font-black text-gray-400 text-right">خروج</button>
            </div>
         </div>
       )}
@@ -1164,13 +1140,15 @@ export default function App() {
           </div>
         )}
 
+        {view === 'ADMIN_LOGIN' && <AdminLoginView onLogin={handleAdminLogin} lang={lang} goBack={() => setView('HOME')} />}
+        
         {view === 'ADMIN_DASHBOARD' && userRole === 'ADMIN' && (
           <AdminDashboardView 
             siteData={siteData} 
             onUpdate={updateSiteData} 
             onUndo={undoDataChange} 
             onReset={resetToDefault} 
-            onLogout={() => { setUserRole(null); setView('HOME'); }}
+            onLogout={() => { setUserRole('VISITOR'); setView('HOME'); }}
             lang={lang} 
           />
         )}
@@ -1178,7 +1156,6 @@ export default function App() {
 
       <PlanningBar lang={lang} onAction={() => navigateTo('BOOKING')} isVisible={view !== 'ADMIN_DASHBOARD'} />
       <Footer lang={lang} navigateTo={navigateTo} t={siteData.translations} isAdmin={userRole === 'ADMIN'} />
-      <AIChatbot lang={lang} />
     </div>
   );
 }
@@ -1288,69 +1265,6 @@ const BookingView: React.FC<{ navigateTo: (v: any) => void; lang: Language }> = 
           {lang === 'AR' ? 'إرسال طلب الحجز' : 'Send Booking Request'}
         </button>
       </form>
-    </div>
-  );
-};
-
-const AIChatbot: React.FC<{ lang: Language }> = ({ lang }) => {
-  const [open, setOpen] = useState(false);
-  const [msg, setMsg] = useState([{ role: 'bot', text: 'Mabuhay! How can I help you today?' }]);
-  const [input, setInput] = useState('');
-  const [loading, setLoading] = useState(false);
-
-  const handle = async () => {
-    if (!input.trim() || loading) return;
-    const txt = input; setInput('');
-    setMsg(prev => [...prev, { role: 'user', text: txt }]);
-    setLoading(true);
-    const reply = await getChatbotResponse(txt);
-    setMsg(prev => [...prev, { role: 'bot', text: reply }]);
-    setLoading(false);
-  };
-
-  return (
-    <div className={`fixed bottom-24 md:bottom-32 ${lang === 'AR' ? 'left-8' : 'right-8'} z-[150]`}>
-      {open && (
-        <div className="absolute bottom-20 inset-x-0 md:w-96 h-[32rem] bg-white rounded-[2.5rem] shadow-2xl border border-blue-50 flex flex-col overflow-hidden animate-in slide-in-from-bottom-4 duration-300">
-          <div className="bg-blue-900 p-6 text-white font-black flex justify-between items-center">
-            <div className="flex items-center gap-3">
-              <div className="w-3 h-3 bg-green-500 rounded-full animate-pulse"></div>
-              <span>Mabuhay AI</span>
-            </div>
-            <button onClick={() => setOpen(false)} className="text-2xl hover:scale-110 transition-transform">&times;</button>
-          </div>
-          <div className="flex-grow p-6 overflow-y-auto space-y-4 bg-gray-50/50">
-            {msg.map((m, i) => (
-              <div key={i} className={`p-4 rounded-2xl text-xs leading-relaxed font-bold shadow-sm ${m.role === 'user' ? 'bg-red-600 text-white ml-8 rounded-br-none' : 'bg-white text-blue-900 mr-8 rounded-bl-none border border-blue-50'}`}>
-                {m.text}
-              </div>
-            ))}
-            {loading && <div className="text-gray-400 text-[10px] animate-pulse">AI is thinking...</div>}
-          </div>
-          <div className="p-4 bg-white border-t border-gray-100 flex gap-2">
-            <input 
-              value={input} 
-              onChange={e => setInput(e.target.value)} 
-              onKeyPress={e => e.key === 'Enter' && handle()} 
-              placeholder={lang === 'AR' ? 'اسألني أي شيء...' : 'Ask me anything...'}
-              className="flex-grow p-4 bg-gray-100 rounded-2xl outline-none focus:bg-white focus:border-blue-900 border border-transparent transition-all text-xs font-bold" 
-            />
-            <button 
-              onClick={handle} 
-              disabled={loading}
-              className="bg-blue-900 text-white px-6 rounded-2xl font-black disabled:opacity-50"
-            >
-              ✓
-            </button>
-          </div>
-        </div>
-      )}
-      <button 
-        onClick={() => setOpen(!open)} 
-        className="w-16 h-16 bg-blue-900 rounded-3xl text-white shadow-2xl flex items-center justify-center font-black text-xl hover:scale-110 active:scale-95 transition-all group"
-      >
-        <span className="group-hover:rotate-12 transition-transform">AI</span>
-      </button>
     </div>
   );
 };
