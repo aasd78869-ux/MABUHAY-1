@@ -9,13 +9,28 @@
     <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🏝️</text></svg>">
     
     <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;600;700;900&display=swap" rel="stylesheet">
-    <style>
-      body {
-        font-family: 'Cairo', sans-serif;
-        background-color: #f9fafb;
+    <script>
+      tailwind.config = {
+        corePlugins: {
+          preflight: true,
+        },
+        theme: {
+          extend: {
+            fontFamily: {
+              cairo: ['Cairo', 'sans-serif'],
+            },
+          },
+        },
       }
-      /* Ensure no white screen during load */
+    </script>
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;600;700;900&display=swap" rel="stylesheet">
+    <style type="text/tailwindcss">
+      @layer base {
+        body {
+          @apply bg-gray-50 text-gray-900 font-cairo antialiased;
+        }
+      }
+      /* Loading State CSS */
       #root:empty {
         display: flex;
         align-items: center;
@@ -23,8 +38,19 @@
         height: 100vh;
         background: white;
       }
+      #root:empty::after {
+        content: "MABUHAY...";
+        font-weight: 900;
+        color: #0038A8;
+        letter-spacing: 0.1em;
+        animation: pulse 1.5s infinite;
+      }
+      @keyframes pulse {
+        0%, 100% { opacity: 1; }
+        50% { opacity: 0.5; }
+      }
     </style>
-  <script type="importmap">
+    <script type="importmap">
 {
   "imports": {
     "react": "https://esm.sh/react@19.0.0",
@@ -36,7 +62,7 @@
   }
 }
 </script>
-</head>
+  </head>
   <body>
     <div id="root"></div>
   </body>
